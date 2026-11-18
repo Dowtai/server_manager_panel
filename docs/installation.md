@@ -64,3 +64,9 @@ docker compose logs --tail=100 api worker
 Не выполняйте `docker compose down -v` при обычном обновлении: команда удаляет persistent volumes.
 
 Реальное получение сертификата требует публичного домена и доступного Ubuntu VPS. Локальные тесты установки не являются подтверждением выпуска сертификата на инфраструктуре пользователя.
+
+## Ошибка сборки «Code is nested too deeply»
+
+Rollup 4.68.6 содержит регрессию нативного парсера на Alpine/musl: сборка может падать даже на обычном коде React. В `web/package.json` через `overrides` закреплён Rollup 4.68.7, а `web/package-lock.json` обновлён для всех платформ. Основание: [ошибка #6670](https://github.com/rollup/rollup/issues/6670), [исправление #6671](https://github.com/rollup/rollup/pull/6671).
+
+На сервер нужно перенести оба обновлённых файла и повторить `sudo ./install.sh`. Обновление глобального npm не устраняет эту регрессию. Для отдельной проверки именно Alpine-этапа при работающем Docker выполните `docker build --platform linux/amd64 --target web -f deploy/Dockerfile .`.
