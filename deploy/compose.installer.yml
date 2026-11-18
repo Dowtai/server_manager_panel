@@ -1,0 +1,30 @@
+# install.sh copies this to compose.override.yml; normal docker compose commands then use HTTPS.
+services:
+  worker:
+    volumes:
+      - type: bind
+        source: ./.installer/runtime.tar
+        target: /runtime/runtime.tar
+        read_only: true
+        bind:
+          create_host_path: false
+  caddy:
+    image: caddy:2.10.2-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+    environment:
+      PANEL_DOMAIN: ${PANEL_DOMAIN:?installer must set PANEL_DOMAIN}
+      PANEL_PORT: ${PANEL_PORT:-443}
+      ACME_EMAIL: ${ACME_EMAIL:?installer must set ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "${PANEL_PORT:-443}:${PANEL_PORT:-443}"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  caddy_data:
+  caddy_config:

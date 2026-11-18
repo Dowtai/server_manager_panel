@@ -1,0 +1,10 @@
+.git
+.env
+.env.*
+web/node_modules
+web/dist
+backups
+*.dump
+
+.installer
+compose.override.yml

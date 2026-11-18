@@ -1,0 +1,19 @@
+{
+	admin off
+	email {$ACME_EMAIL}
+	auto_https disable_redirects
+}
+
+http://{$PANEL_DOMAIN} {
+	redir https://{$PANEL_DOMAIN}:{$PANEL_PORT}{uri} permanent
+}
+
+https://{$PANEL_DOMAIN}:{$PANEL_PORT} {
+	tls {
+		issuer acme {
+			dir https://acme-v02.api.letsencrypt.org/directory
+			disable_tlsalpn_challenge
+		}
+	}
+	reverse_proxy api:8080
+}

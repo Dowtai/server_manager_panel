@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+web/node_modules/
+web/dist/
+node_modules/
+coverage.out
+*.test
+*.dump
+backups/
+.DS_Store
+__pycache__/
+*.pyc
+
+.installer/
+compose.override.yml

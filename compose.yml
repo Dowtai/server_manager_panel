@@ -1,0 +1,61 @@
+name: awg-panel
+services:
+  db:
+    image: postgres:17.7-alpine3.22@sha256:6b591f995765a189e69276dd55e0b362342d65d10d0359bb1fab67bc3391f20f
+    environment:
+      POSTGRES_DB: awgpanel
+      POSTGRES_USER: awgpanel
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes: ["postgres:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U awgpanel -d awgpanel"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  api:
+    image: awg-panel:local
+    build: {context: ., dockerfile: deploy/Dockerfile}
+    env_file: ${AWG_ENV_FILE:-.env}
+    environment:
+      DATABASE_URL: postgres://awgpanel:${POSTGRES_PASSWORD}@db:5432/awgpanel?sslmode=disable
+      WEB_DIR: /app/web/dist
+    ports: ["127.0.0.1:${API_HOST_PORT:-8080}:8080"]
+    depends_on:
+      db: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  worker:
+    image: awg-panel:local
+    build: {context: ., dockerfile: deploy/Dockerfile}
+    command: ["worker"]
+    # The Docker socket is required for an isolated client-side handshake/traffic probe.
+    user: root
+    env_file: ${AWG_ENV_FILE:-.env}
+    environment:
+      DATABASE_URL: postgres://awgpanel:${POSTGRES_PASSWORD}@db:5432/awgpanel?sslmode=disable
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+    depends_on:
+      api: {condition: service_healthy}
+    restart: unless-stopped
+  telegram:
+    image: awg-panel:local
+    build: {context: ., dockerfile: deploy/Dockerfile}
+    command: ["telegram"]
+    profiles: [telegram]
+    env_file: ${AWG_ENV_FILE:-.env}
+    environment:
+      API_URL: http://api:8080
+      TELEGRAM_OFFSET_FILE: /data/telegram.offset
+    user: root
+    volumes: ["telegram:/data"]
+    depends_on:
+      api: {condition: service_healthy}
+    restart: unless-stopped
+volumes:
+  postgres:
+  telegram:
